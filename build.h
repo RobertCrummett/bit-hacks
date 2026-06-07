@@ -6,6 +6,7 @@
 
 void Print(HANDLE hOut, const char* msg);
 void PrintLine(const char* msg);
+void Fail(const char* msg);
 
 int RunCommand(const char* cmd);
 
@@ -30,7 +31,7 @@ void PrintLine(const char* msg)
     Print(hOut, "\r\n");
 }
 
-static void Fail(const char* msg)
+void Fail(const char* msg)
 {
     HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
     Print(hErr, "FATAL ERROR: ");
@@ -45,7 +46,7 @@ int RunCommand(const char* cmd)
     PROCESS_INFORMATION pi = {0};
     si.cb = sizeof(si);
 
-    // Copy command into buffer
+    // Copy command into buffer wrapped in cmd.exe
     const char cmdPrefix[]  = "cmd.exe /c \"";
     const char cmdPostfix[] = "\"";
 
@@ -72,6 +73,7 @@ int RunCommand(const char* cmd)
     return (int)exitCode;
 }
 
+/* Checks if file a is newer than file b */
 static int IsFileNewer(const char* a, const char* b)
 {
     WIN32_FILE_ATTRIBUTE_DATA fa;
@@ -95,21 +97,14 @@ void RebuildSelf(const char* sourcePath)
     char exePath[MAX_PATH];
     GetModuleFileNameA(NULL, exePath, MAX_PATH);
 
-    // 1. Initial fast check (No lock overhead)
-    if (!IsFileNewer(sourcePath, exePath))
-    {
-        return;
-    }
+    if (!IsFileNewer(sourcePath, exePath)) return;
 
-    // 2. Prevent race conditions if multiple instances launch simultaneously
     HANDLE hMutex = CreateMutexA(NULL, FALSE, "Local\\SelfRebuildingBuildExeMutex");
     if (hMutex)
     {
         WaitForSingleObject(hMutex, INFINITE);
     }
 
-    // 3. Double-check condition inside the lock! 
-    // (Another instance might have just finished the rebuild while we waited)
     if (!IsFileNewer(sourcePath, exePath))
     {
         if (hMutex)
@@ -138,12 +133,10 @@ void RebuildSelf(const char* sourcePath)
         Fail("Could not rename current executable");
     }
 
-    // Rebuild the executable with the
+    // Rebuild the executable.
     char cmd[1024];
     wsprintfA(cmd, "cl.exe /nologo %s /Fe:%s /link user32.lib > NUL", sourcePath, exePath);
-    int buildExitCode = RunCommand(cmd);
-
-    if (buildExitCode != 0)
+    if (RunCommand(cmd) != 0)
     {
         MoveFileExA(oldPath, exePath, MOVEFILE_REPLACE_EXISTING);
         if (hMutex)
@@ -156,6 +149,7 @@ void RebuildSelf(const char* sourcePath)
 
     PrintLine("Launching fresh executable...");
 
+    // Run the original command line with the new executable.
     char* original_cmd = GetCommandLineA();
     int newRunExitCode = RunCommand(original_cmd);
 
