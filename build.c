@@ -82,6 +82,8 @@ static int CreateNewDirectoryUnlessItExists(const char *path)
 const char *SourceFilePaths[] =
 {
     "compute_the_sign_of_an_integer.c",
+    "two_integers_have_opposite_signs.c",
+    "integer_absolute_value_without_branching.c",
 };
 
 int main(int argc, char** argv)
