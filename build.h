@@ -1,4 +1,4 @@
-#ifndef _BUILD_H
+#if !defined(_BUILD_H)
 #define _BUILD_H
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -7,7 +7,10 @@
 void Print(HANDLE hOut, const char* msg);
 void PrintLine(const char* msg);
 
-DWORD RunCommand(const char* cmd);
+int RunCommand(const char* cmd);
+
+void RebuildSelf(const char* sourcePath);
+#define REBUILD_SELF() RebuildSelf(__FILE__)
 
 #endif // _BUILD_H
 
@@ -36,23 +39,29 @@ static void Fail(const char* msg)
     ExitProcess(1);
 }
 
-DWORD RunCommand(const char* cmd)
+int RunCommand(const char* cmd)
 {
     STARTUPINFOA si = {0};
     PROCESS_INFORMATION pi = {0};
     si.cb = sizeof(si);
 
+    // Copy command into buffer
+    const char cmdPrefix[]  = "cmd.exe /c \"";
+    const char cmdPostfix[] = "\"";
+
     char cmdBuffer[8192];
-    if (lstrlenA(cmd) >= sizeof(cmdBuffer)) {
+    int cmdLength = lstrlenA(cmd);
+    if ((cmdLength + sizeof(cmdPrefix) + sizeof(cmdPostfix) - 1) >= sizeof(cmdBuffer)) {
         Fail("Command line too long for RunCommand buffer");
     }
-    lstrcpyA(cmdBuffer, cmd);
+    lstrcpyA(cmdBuffer, cmdPrefix);
+    lstrcpyA(cmdBuffer + sizeof(cmdPrefix) - 1, cmd);
+    lstrcpyA(cmdBuffer + sizeof(cmdPrefix) - 1 + cmdLength, cmdPostfix);
 
     if (!CreateProcessA(NULL, cmdBuffer, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
         return GetLastError() ? GetLastError() : 1;
     }
-
-    WaitForSingleObject(pi.hProcess, INFINITE);
+    WaitForSingleObject(pi.hProcess, INFINITE); // Synchronous execution
 
     DWORD exitCode = 1;
     GetExitCodeProcess(pi.hProcess, &exitCode);
@@ -60,7 +69,7 @@ DWORD RunCommand(const char* cmd)
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
-    return exitCode;
+    return (int)exitCode;
 }
 
 static int IsFileNewer(const char* a, const char* b)
@@ -81,7 +90,7 @@ static int IsFileNewer(const char* a, const char* b)
     return CompareFileTime(&fa.ftLastWriteTime, &fb.ftLastWriteTime) > 0;
 }
 
-static void __RebuildSelf(const char* sourcePath)
+void RebuildSelf(const char* sourcePath)
 {
     char exePath[MAX_PATH];
     GetModuleFileNameA(NULL, exePath, MAX_PATH);
@@ -131,8 +140,8 @@ static void __RebuildSelf(const char* sourcePath)
 
     // Rebuild the executable with the
     char cmd[1024];
-    wsprintfA(cmd, "cmd.exe /c \"cl.exe /nologo %s /Fe:%s /link user32.lib\" > NUL", sourcePath, exePath);
-    DWORD buildExitCode = RunCommand(cmd);
+    wsprintfA(cmd, "cl.exe /nologo %s /Fe:%s /link user32.lib > NUL", sourcePath, exePath);
+    int buildExitCode = RunCommand(cmd);
 
     if (buildExitCode != 0)
     {
@@ -148,7 +157,7 @@ static void __RebuildSelf(const char* sourcePath)
     PrintLine("Launching fresh executable...");
 
     char* original_cmd = GetCommandLineA();
-    DWORD newRunExitCode = RunCommand(original_cmd);
+    int newRunExitCode = RunCommand(original_cmd);
 
     if (hMutex)
     {
@@ -158,7 +167,5 @@ static void __RebuildSelf(const char* sourcePath)
 
     ExitProcess(newRunExitCode);
 }
-
-#define REBUILD_SELF() __RebuildSelf(__FILE__)
 
 #endif // BUILD_IMPLEMENTATION
