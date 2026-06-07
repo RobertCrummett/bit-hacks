@@ -1,0 +1,164 @@
+#ifndef _BUILD_H
+#define _BUILD_H
+
+#define _CRT_SECURE_NO_WARNINGS
+#include <windows.h>
+
+void Print(HANDLE hOut, const char* msg);
+void PrintLine(const char* msg);
+
+DWORD RunCommand(const char* cmd);
+
+#endif // _BUILD_H
+
+#if defined(BUILD_IMPLEMENTATION)
+
+void Print(HANDLE hOut, const char* msg)
+{
+    if (!msg) return;
+    DWORD written;
+    WriteFile(hOut, msg, (DWORD)lstrlenA(msg), &written, NULL);
+}
+
+void PrintLine(const char* msg)
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    Print(hOut, msg);
+    Print(hOut, "\r\n");
+}
+
+static void Fail(const char* msg)
+{
+    HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+    Print(hErr, "FATAL ERROR: ");
+    Print(hErr, msg);
+    Print(hErr, "\r\n");
+    ExitProcess(1);
+}
+
+DWORD RunCommand(const char* cmd)
+{
+    STARTUPINFOA si = {0};
+    PROCESS_INFORMATION pi = {0};
+    si.cb = sizeof(si);
+
+    char cmdBuffer[8192];
+    if (lstrlenA(cmd) >= sizeof(cmdBuffer)) {
+        Fail("Command line too long for RunCommand buffer");
+    }
+    lstrcpyA(cmdBuffer, cmd);
+
+    if (!CreateProcessA(NULL, cmdBuffer, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
+        return GetLastError() ? GetLastError() : 1;
+    }
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    DWORD exitCode = 1;
+    GetExitCodeProcess(pi.hProcess, &exitCode);
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    return exitCode;
+}
+
+static int IsFileNewer(const char* a, const char* b)
+{
+    WIN32_FILE_ATTRIBUTE_DATA fa;
+    WIN32_FILE_ATTRIBUTE_DATA fb;
+
+    if (!GetFileAttributesExA(a, GetFileExInfoStandard, &fa))
+    {
+        return 0; // Source file not available
+    }
+
+    if (!GetFileAttributesExA(b, GetFileExInfoStandard, &fb))
+    {
+        return 1; // Executable file not available
+    }
+
+    return CompareFileTime(&fa.ftLastWriteTime, &fb.ftLastWriteTime) > 0;
+}
+
+static void __RebuildSelf(const char* sourcePath)
+{
+    char exePath[MAX_PATH];
+    GetModuleFileNameA(NULL, exePath, MAX_PATH);
+
+    // 1. Initial fast check (No lock overhead)
+    if (!IsFileNewer(sourcePath, exePath))
+    {
+        return;
+    }
+
+    // 2. Prevent race conditions if multiple instances launch simultaneously
+    HANDLE hMutex = CreateMutexA(NULL, FALSE, "Local\\SelfRebuildingBuildExeMutex");
+    if (hMutex)
+    {
+        WaitForSingleObject(hMutex, INFINITE);
+    }
+
+    // 3. Double-check condition inside the lock! 
+    // (Another instance might have just finished the rebuild while we waited)
+    if (!IsFileNewer(sourcePath, exePath))
+    {
+        if (hMutex)
+        { 
+            ReleaseMutex(hMutex);
+            CloseHandle(hMutex);
+        }
+        return; 
+    }
+
+    PrintLine("Rebuilding self...");
+
+    // Postfix the running executable's name with '.old'
+    char oldPath[MAX_PATH];
+    lstrcpyA(oldPath, exePath);
+    lstrcatA(oldPath, ".old");
+
+    DeleteFileA(oldPath);
+    if (!MoveFileExA(exePath, oldPath, MOVEFILE_REPLACE_EXISTING))
+    {
+        if (hMutex)
+        {
+            ReleaseMutex(hMutex);
+            CloseHandle(hMutex);
+        }
+        Fail("Could not rename current executable");
+    }
+
+    // Rebuild the executable with the
+    char cmd[1024];
+    wsprintfA(cmd, "cmd.exe /c \"cl.exe /nologo %s /Fe:%s /link user32.lib\" > NUL", sourcePath, exePath);
+    DWORD buildExitCode = RunCommand(cmd);
+
+    if (buildExitCode != 0)
+    {
+        MoveFileExA(oldPath, exePath, MOVEFILE_REPLACE_EXISTING);
+        if (hMutex)
+        {
+            ReleaseMutex(hMutex);
+            CloseHandle(hMutex);
+        }
+        Fail("Source file compilation failed");
+    }
+
+    PrintLine("Launching fresh executable...");
+
+    char* original_cmd = GetCommandLineA();
+    DWORD newRunExitCode = RunCommand(original_cmd);
+
+    if (hMutex)
+    {
+        ReleaseMutex(hMutex);
+        CloseHandle(hMutex);
+    }
+
+    ExitProcess(newRunExitCode);
+}
+
+#define REBUILD_SELF() __RebuildSelf(__FILE__)
+
+#endif // BUILD_IMPLEMENTATION
