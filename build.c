@@ -7,10 +7,10 @@
 
 const char *SourceFilePaths[] =
 {
-    "compute_the_sign_of_an_integer.c",
+    "sign_of_an_integer.c",
     "two_integers_have_opposite_signs.c",
     "integer_absolute_value_without_branching.c",
-    "compute_minimum_of_two_integers_without_branching.c",
+    "minimum_of_two_integers_without_branching.c",
 };
 
 #ifndef BUILD_DIR
