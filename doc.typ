@@ -89,6 +89,50 @@ number of old machines that still use one's compliment). The evaluation of
 unsigned by adding $2^N$, yielding a two's compliment representation of `v`'s value.
 This value is subsequently negated, giving the desired result.
 
+= Compute the minimum or maximum of two integers without branching
+#let code = read("compute_minimum_of_two_integers_without_branching.c")
+
+```c
+int x;  // we want to find the minimum of x and y
+int y;
+int r;  // the result goes here
+```
+#raw(code-snippet(code, 1), lang: "c")
+
+On rare machines where branching is very expensive and no conditional move
+intructions exist, the above expression might be faster than the obvious approach
+`r = (x < y) ? x : y`, even though it involves two more instructions. The obvious
+approach should usually be best. It works because if `x < y`, then `-(x < y)` is
+all ones in binary (negative one in two's compliment). In this case
+`r = y ^ ((x ^ y) & -1) = y ^ x ^ y = x`. On the other hand, if `x >= y`, then
+`-(x < y)` is all zeros in binary. In this case `r = y ^ ((x ^ y) & 0) = y ^ 0 = y`.
+So `-(x < y)` behaves like a switch, turning the xor operation on and off.
+
+Some machines use a branch instruction to compute `(x < y)`, so there would be
+no advantage in this case.
+
+To compute the maximum,
+```c
+r = x ^ ((y ^ x) & -(x < y)); // max(x, y)
+```
+
+== Quick and dirty versions
+
+If you know that `INT_MIN <= x - y <= INT_MAX`, then you can use the following,
+which are faster because `(x - y)` only needs to be evaluated once.
+
+#raw(code-snippet(code, 2), lang: "c")
+```c
+r = x - ((x - y) & ((x - y) >> (sizeof(int) * CHAR_BIT - 1))); // max(x, y)
+```
+
+Note that the 1989 ANSI C specification does not specify the result of a signed
+right-shift, so these aren't portable. If exceptions are thrown on overflows,
+then the values of `x` and `y` should be case to unsigned integers for the
+subtractions to avoid unnecessarily throwing an exception, however the right
+shift needs a signed operand to produce all one bits when negative, so cast
+to signed integer there.
+
 = Reference
 
 #link("https://graphics.stanford.edu/~seander/bithacks.html")
