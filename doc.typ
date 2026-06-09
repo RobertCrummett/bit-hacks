@@ -1,20 +1,20 @@
 #show link: (x) => underline(text(x, fill: rgb(20, 0, 220)))
 
-#let code-snippet(content, num) = {
-  let s = str(num)
+#let snippet(code, method) = {
+  let m = str(method)
   let pattern = regex(
-    "(?s)//\\s*BEGIN:\\s*method" + s + 
-    "\\s*(.*?)\\s*//\\s*END:\\s*method" + s
+    "(?s)//\\s*BEGIN:\\s*method" + m + 
+    "\\s*(.*?)\\s*//\\s*END:\\s*method" + m
   )
-  let match = content.match(pattern)
+  let match = code.match(pattern)
   if match != none {
-    return match.captures
+    return raw(match.captures
       .at(0)
       .split("\n")
       .map(line => line.trim())
-      .join("\n")
+      .join("\n"), lang: "c")
   } else {
-    return "// SNIPPET - Method `" + s + "` not matched"
+    return raw("// SNIPPET - Method `" + m + "` not matched", lang: "c")
   }
 }
 
@@ -25,11 +25,11 @@
 int v;      // we want to find the sign of v
 int sign;   // the result goes here
 ```
-#raw(code-snippet(code, 1), lang: "c")
+#snippet(code, 1)
 
-#raw(code-snippet(code, 2), lang: "c")
+#snippet(code, 2)
 
-#raw(code-snippet(code, 3), lang: "c")
+#snippet(code, 3)
 
 The last expression above evalutates to `sign = v >> 31` for 32-bit integers.
 This is one operation faster than the obvious way, `sign=-(v < 0)`. This
@@ -60,7 +60,7 @@ hack might not work. Angus recommended the casting versions on March 4, 2006.
 ```c
 int x, y;               // input values to compare signs
 ```
-#raw(code-snippet(code, 1), lang: "c")
+#snippet(code, 1)
 
 = Compute the integer absolute value (abs) without branching
 #let code = read("integer_absolute_value_without_branching.c")
@@ -70,10 +70,10 @@ int v;           // we want to find the absolute value of v
 unsigned int r;  // the result goes here
 int const mask = v >> sizeof(int) * CHAR_BIT - 1;
 ```
-#raw(code-snippet(code, 1), lang: "c")
+#snippet(code, 1)
 
 Patented variation:
-#raw(code-snippet(code, 2), lang: "c")
+#snippet(code, 2)
 
 Some CPUs don't have an integer absolute value instruction (or the compiler fails
 to use them). On machines where branching is expensive, the above expression can be
@@ -97,7 +97,7 @@ int x;  // we want to find the minimum of x and y
 int y;
 int r;  // the result goes here
 ```
-#raw(code-snippet(code, 1), lang: "c")
+#snippet(code, 1)
 
 On rare machines where branching is very expensive and no conditional move
 intructions exist, the above expression might be faster than the obvious approach
@@ -121,7 +121,7 @@ r = x ^ ((y ^ x) & -(x < y)); // max(x, y)
 If you know that `INT_MIN <= x - y <= INT_MAX`, then you can use the following,
 which are faster because `(x - y)` only needs to be evaluated once.
 
-#raw(code-snippet(code, 2), lang: "c")
+#snippet(code, 2)
 ```c
 r = x - ((x - y) & ((x - y) >> (sizeof(int) * CHAR_BIT - 1))); // max(x, y)
 ```
@@ -140,11 +140,11 @@ to signed integer there.
 unsigned int v;  // we want to see if v is a power of two
 bool f;          // the result goes here
 ```
-#raw(code-snippet(code, 1), lang: "c")
+#snippet(code, 1)
 
 Note 0 is incorrectly considered a power of two here. To remedy this, use:
 
-#raw(code-snippet(code, 2), lang: "c")
+#snippet(code, 2)
 
 
 = Reference
