@@ -146,8 +146,45 @@ Note 0 is incorrectly considered a power of two here. To remedy this, use:
 
 #snippet(code, 2)
 
+= Sign extending from a constant bit-width
+#let code = read("sign_extending_constant_bitwidth.c")
 
+Sign extension is automatic for built-in types, such as chars and ints.
+But suppose you have a signed two's complement number, x, that is stored
+using only b bits. Moreover, suppose you want to convert x to an int,
+which has more that b bits. A simple copy will work when x is positive,
+but if negative, the sign must be extended. For example, if we have only
+4 bits to store a number, then -3 is represented as 1101 in binary. If
+we have 8 bits, then -3 is represented as 11111101. The most-significant
+bit of the 4-bit representation is replicated sinistrally to fill in the
+destination when we convert to a representation with more bits; this is
+sign extending. In C, sign extension from a constant bit-width is trivial,
+since bit fields may be specified in structs or unions. For example, to
+convert from 5 bits to a full integer:
 
+```c
+int x; // convert this from using 5 bits to a full int
+int r; // resulting sign extended number goes here
+struct { signed int x:5; } s;
+```
+#snippet(code, 1)
+
+The following C++ template function that uses the same language feature
+to convert from b bits in one operation (though the compiler is generating
+more).
+
+```cpp
+template<typename T, unsigned B>
+inline T signextend(const T x) {
+    struct { T x:B; } s;
+    return s.x = x;
+}
+int r = signextend<signed int, 5>(x);  // sign extend 5 bit number x to r
+```
+
+On March 4, 2006, Pat Wood pointed out that ANSI C standard requires that
+the bitfield have the keyword `signed` to be signed; otherwise, the sign
+is undefined.
 
 = Reference
 
