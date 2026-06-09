@@ -19,7 +19,7 @@
 }
 
 = Compute the sign of an integer
-#let code = read("compute_the_sign_of_an_integer.c")
+#let code = read("sign_of_an_integer.c")
 
 ```c
 int v;      // we want to find the sign of v
@@ -90,7 +90,7 @@ unsigned by adding $2^N$, yielding a two's compliment representation of `v`'s va
 This value is subsequently negated, giving the desired result.
 
 = Compute the minimum or maximum of two integers without branching
-#let code = read("compute_minimum_of_two_integers_without_branching.c")
+#let code = read("minimum_of_two_integers_without_branching.c")
 
 ```c
 int x;  // we want to find the minimum of x and y
@@ -132,6 +132,20 @@ then the values of `x` and `y` should be case to unsigned integers for the
 subtractions to avoid unnecessarily throwing an exception, however the right
 shift needs a signed operand to produce all one bits when negative, so cast
 to signed integer there.
+
+= Determining if an integer is a power of two
+#let code = read("integer_power_of_two.c")
+
+```c
+unsigned int v;  // we want to see if v is a power of two
+bool f;          // the result goes here
+```
+#raw(code-snippet(code, 1), lang: "c")
+
+Note 0 is incorrectly considered a power of two here. To remedy this, use:
+
+#raw(code-snippet(code, 2), lang: "c")
+
 
 = Reference
 
