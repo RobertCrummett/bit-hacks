@@ -147,6 +147,8 @@ Note 0 is incorrectly considered a power of two here. To remedy this, use:
 #snippet(code, 2)
 
 
+
+
 = Reference
 
 #link("https://graphics.stanford.edu/~seander/bithacks.html")

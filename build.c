@@ -53,22 +53,12 @@ static int BuildAndRun(const char *srcPath)
     wsprintfA(buildCmd,
             "cl.exe /nologo /Zi /Fo:%s /Fe:%s /Fd:%s %s > NUL",
             objPath, exePath, pdbPath, srcPath);
-    if (RunCommand(buildCmd) != 0) {
-        char msg[1024];
-        wsprintfA(msg, "`%s` did not return exit code zero", buildCmd);
-        Fail(msg);
-        return 1;
-    }
+    if (RunCommand(buildCmd) != 0) return 1; // Exit code 1 indicates build failed
 
     // Run the executables.
     char runCmd[1024];
     wsprintfA(runCmd, ".\\%s", exePath);
-    if (RunCommand(runCmd) != 0) {
-        char msg[1024];
-        wsprintfA(msg, "`%s` did not return exit code zero", runCmd);
-        Fail(msg);
-        return 1;
-    }
+    if (RunCommand(runCmd) != 0) return 2; // Exit code 2 indicates run failed
 
     return 0;
 }
@@ -95,16 +85,47 @@ int main(int argc, char** argv)
     if (CreateNewDirectoryUnlessItExists(BUILD_DIR "\\bin") != 0) return 1;
     if (CreateNewDirectoryUnlessItExists(BUILD_DIR "\\obj") != 0) return 1;
 
+    HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hStdOut == INVALID_HANDLE_VALUE) {
+	    Fail("Standard output handle is invalid");
+	    return 1;
+    }
+
     int FileCount = sizeof(SourceFilePaths) / sizeof(*SourceFilePaths);
+
     for (int i = 0; i < FileCount; i++)
     {
         const char *Path = SourceFilePaths[i];
+        int ExitCode = BuildAndRun(Path);
         
         char msg[1024];
-        wsprintfA(msg, "[%d/%d] %s", i + 1, FileCount, Path);
-        PrintLine(msg);
+        wsprintfA(msg, "[%d/%d] ", i + 1, FileCount);
+        Print(hStdOut, msg);
 
-        if (BuildAndRun(Path) != 0) return 1;
+        DWORD ResetWhite = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
+        switch (ExitCode) {
+            case 0:
+                SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN);
+                Print(hStdOut, "PASS");
+                SetConsoleTextAttribute(hStdOut, ResetWhite);
+            break;
+            case 1:
+                SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
+                Print(hStdOut, "FAIL");
+                SetConsoleTextAttribute(hStdOut, ResetWhite);
+            break;
+            case 2:
+                SetConsoleTextAttribute(hStdOut, FOREGROUND_RED|FOREGROUND_GREEN);
+                Print(hStdOut, "FAIL");
+                SetConsoleTextAttribute(hStdOut, ResetWhite);
+            break;
+            default:
+                Fail("Unknown exit code returned from BuildAndRun");
+            break;
+        }
+
+        wsprintfA(msg, " %s\n", Path);
+        Print(hStdOut, msg);
     }
 
     return 0;
