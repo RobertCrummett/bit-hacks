@@ -186,6 +186,24 @@ On March 4, 2006, Pat Wood pointed out that ANSI C standard requires that
 the bitfield have the keyword `signed` to be signed; otherwise, the sign
 is undefined.
 
+= Sign extending from a variable bit-width
+#let code = read("sign_extending_variable_bitwidth.c")
+
+Sometimes we need to extend the sign of a number but we don't know a priori
+the number of bits, b, in which it is represented. (Or we could be programming
+in a language like Java, which lacks bitfields.)
+
+```c
+unsigned b; // number of bits representing the number in x
+int x;      // sign extend this b-bit number to r
+int r;      // resulting sign-extended number
+int const m = 1U << (b - 1); // mask can be precomputed if b is fixed
+```
+#snippet(code, 1)
+
+
+
+
 = Reference
 
 #link("https://graphics.stanford.edu/~seander/bithacks.html")

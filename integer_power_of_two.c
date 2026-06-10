@@ -19,12 +19,12 @@ int main(void) {
         // BEGIN: method1
         f = (v & (v - 1)) == 0;
         // END: method1
-        if (v == 0) {
-            // Expected failure of method1 for v == 0, f should be false, but it is true
-            if (f != true) return -1;
-        } else {
-            if (f != expected) return 1;
-        }
+	if (v == 0) {
+	    // Expected failure of method1 for v == 0, f should be false, but it is true
+	    if (f != true) return -1;
+	} else {
+	    if (f != expected) return 1;
+	}
 
         // BEGIN: method2
         f = v && !(v & (v - 1));

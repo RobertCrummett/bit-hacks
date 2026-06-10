@@ -13,6 +13,7 @@ const char *SourceFilePaths[] =
     "minimum_of_two_integers_without_branching.c",
     "integer_power_of_two.c",
     "sign_extending_constant_bitwidth.c",
+    "sign_extending_variable_bitwidth.c",
 };
 
 #ifndef BUILD_DIR
@@ -106,25 +107,25 @@ int main(int argc, char** argv)
 
         DWORD ResetWhite = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
         switch (ExitCode) {
-            case 0: // Compiled and ran successfully
-                SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN);
-                Print(hStdOut, "PASS");
-                SetConsoleTextAttribute(hStdOut, ResetWhite);
-            break;
-            case 1: // Failed to compile
-                SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
-                Print(hStdOut, "FAIL");
-                SetConsoleTextAttribute(hStdOut, ResetWhite);
-            break;
-            case 2: // Compiled but did not return expected exit code
-                SetConsoleTextAttribute(hStdOut, FOREGROUND_RED|FOREGROUND_GREEN);
-                Print(hStdOut, "FAIL");
-                SetConsoleTextAttribute(hStdOut, ResetWhite);
-            break;
-            default:
-                Fail("Unknown exit code returned from BuildAndRun");
-            break;
-        }
+	    case 0: // Compiled and ran successfully
+		SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN);
+		Print(hStdOut, "PASS");
+		SetConsoleTextAttribute(hStdOut, ResetWhite);
+		break;
+	    case 1: // Failed to compile
+		SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
+		Print(hStdOut, "FAIL");
+		SetConsoleTextAttribute(hStdOut, ResetWhite);
+		break;
+	    case 2: // Compiled but did not return expected exit code
+		SetConsoleTextAttribute(hStdOut, FOREGROUND_RED|FOREGROUND_GREEN);
+		Print(hStdOut, "FAIL");
+		SetConsoleTextAttribute(hStdOut, ResetWhite);
+		break;
+	    default:
+		Fail("Unknown exit code returned from BuildAndRun");
+		break;
+	}
 
         wsprintfA(msg, " %s\n", Path);
         Print(hStdOut, msg);
