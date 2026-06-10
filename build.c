@@ -7,13 +7,13 @@
 
 const char *SourceFilePaths[] =
 {
-    "sign_of_an_integer.c",
-    "two_integers_have_opposite_signs.c",
-    "integer_absolute_value_without_branching.c",
-    "minimum_of_two_integers_without_branching.c",
-    "integer_power_of_two.c",
-    "sign_extending_constant_bitwidth.c",
-    "sign_extending_variable_bitwidth.c",
+    "src/sign_of_an_integer.c",
+    "src/two_integers_have_opposite_signs.c",
+    "src/integer_absolute_value_without_branching.c",
+    "src/minimum_of_two_integers_without_branching.c",
+    "src/integer_power_of_two.c",
+    "src/sign_extending_constant_bitwidth.c",
+    "src/sign_extending_variable_bitwidth.c",
 };
 
 #ifndef BUILD_DIR
@@ -26,12 +26,19 @@ static int BuildAndRun(const char *srcPath)
     // and build up some other paths from this partial path. Namely, the
     // obj file paths, exe file paths, and pdb/ilk file paths.
     char name[MAX_PATH];
-    lstrcpyA(name, srcPath);
+    int prefixSize = 0;
+    {
+	const char *ptr = srcPath;
+	while (*ptr != '\0') ptr++;
+	while (*ptr != '\\' && *ptr != '/' && ptr != srcPath) ptr--;
+	prefixSize = ptr - srcPath + 1;
+    }
+    lstrcpyA(name, srcPath + prefixSize);
     {
         char *ptr = name;
         while (*ptr != '\0') ptr++;
         while (*ptr != '.')  ptr--;
-        *ptr = '\0';
+        *ptr = '\0'; // Shallow copy modification of name
     }
 
     char objPath[MAX_PATH], exePath[MAX_PATH], pdbPath[MAX_PATH];
@@ -105,8 +112,8 @@ int main(int argc, char** argv)
         wsprintfA(msg, "[%d/%d] ", i + 1, FileCount);
         Print(hStdOut, msg);
 
-        DWORD ResetWhite = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
-        switch (ExitCode) {
+	DWORD ResetWhite = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
+	switch (ExitCode) {
 	    case 0: // Compiled and ran successfully
 		SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN);
 		Print(hStdOut, "PASS");
