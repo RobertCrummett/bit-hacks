@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #pragma comment(lib, "user32.lib")
 
@@ -16,85 +17,20 @@ const char *SourceFilePaths[] =
     "src/sign_extending_variable_bitwidth.c",
 };
 
-#ifndef BUILD_DIR
-#define BUILD_DIR ".build"
-#endif // BUILD_DIR
-
-static int BuildAndRun(const char *srcPath)
+static ASYNC_COMMAND BuildAndRunAsync(const char *srcPath)
 {
-    // The goal of this block is to remove the suffix from the srcPath
-    // and build up some other paths from this partial path. Namely, the
-    // obj file paths, exe file paths, and pdb/ilk file paths.
     char name[MAX_PATH];
-    int prefixSize = 0;
-    {
-	const char *ptr = srcPath;
-	while (*ptr != '\0') ptr++;
-	while (*ptr != '\\' && *ptr != '/' && ptr != srcPath) ptr--;
-	prefixSize = ptr - srcPath + 1;
-    }
-    lstrcpyA(name, srcPath + prefixSize);
-    {
-	char *ptr = name;
-	while (*ptr != '\0') ptr++;
-	while (*ptr != '.')  ptr--;
-	*ptr = '\0'; // Shallow copy modification of name
-    }
+    lstrcpyA(name, PathFindFileName(srcPath));
+    PathRemoveExtension(name);
 
-    char objPath[MAX_PATH], exePath[MAX_PATH], pdbPath[MAX_PATH];
-
-    // This function relies on the existance of the BUILD_DIR
-    // and its subdirectories.
-    lstrcpyA(objPath, BUILD_DIR"\\obj\\");
-    lstrcatA(objPath, name);
-    lstrcatA(objPath, ".obj");
-
-    lstrcpyA(exePath, BUILD_DIR"\\bin\\");
-    lstrcatA(exePath, name);
-    lstrcatA(exePath, ".exe");
-
-    lstrcpyA(pdbPath, BUILD_DIR"\\bin\\");
-    lstrcatA(pdbPath, name);
-    lstrcatA(pdbPath, ".pdb");
-
-    // Build the source files.
-    char buildCmd[1024];
-    wsprintfA(buildCmd,
-	    "cl.exe /nologo /Zi /Fo:%s /Fe:%s /Fd:%s %s > NUL",
-	    objPath, exePath, pdbPath, srcPath);
-    if (RunCommand(buildCmd) != 0)
-	return 1; // Exit code 1 indicates build failed
-
-    // Run the executables.
-    char runCmd[1024];
-    wsprintfA(runCmd, ".\\%s", exePath);
-    if (RunCommand(runCmd) != 0)
-	return 2; // Exit code 2 indicates run failed
-
-    return 0;
-}
-
-static int CreateNewDirectoryUnlessItExists(const char *path)
-{
-    if (CreateDirectoryA(path, NULL) == 0) return 0;
-
-    if (GetLastError() == ERROR_ALREADY_EXISTS)
-	return 0; // If the directory exists, no action needs to be taken.
-
-    // In this case, the path specified does not exist.
-    char msg[1024];
-    wsprintfA(msg, "The path `%s` was not found", path); 
-    Fail(msg);
-    return 1;
+    // Build and run the source files asynchronously.
+    return AsyncRunCommand("cl.exe /nologo /Zi /Fo:"BUILD_DIR"\\obj\\%s.obj /Fe:"BUILD_DIR"\\bin\\%s.exe "
+	                   "/Fd:"BUILD_DIR"\\bin\\%s.pdb %s && .\\"BUILD_DIR"\\bin\\%s.exe", name, name, name, srcPath, name);
 }
 
 int main(int argc, char** argv)
 {
     REBUILD_SELF();
-
-    if (CreateNewDirectoryUnlessItExists(BUILD_DIR) != 0)         return 1;
-    if (CreateNewDirectoryUnlessItExists(BUILD_DIR "\\bin") != 0) return 1;
-    if (CreateNewDirectoryUnlessItExists(BUILD_DIR "\\obj") != 0) return 1;
 
     HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hStdOut == INVALID_HANDLE_VALUE) {
@@ -103,43 +39,41 @@ int main(int argc, char** argv)
     }
 
     int FileCount = sizeof(SourceFilePaths) / sizeof(*SourceFilePaths);
+    ASYNC_COMMAND *Commands = (ASYNC_COMMAND *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ASYNC_COMMAND) * FileCount);
 
+    // Start all tasks asynchronously
+    for (int i = 0; i < FileCount; i++)
+    {
+	Commands[i] = BuildAndRunAsync(SourceFilePaths[i]);
+    }
+
+    // Wait for tasks and report results
     for (int i = 0; i < FileCount; i++)
     {
 	const char *Path = SourceFilePaths[i];
-	int ExitCode = BuildAndRun(Path);
+	int ExitCode = WaitAndReportCommand(Commands[i]);
 
 	// Logging result to the standard output
-	char msg[1024];
-	wsprintfA(msg, "[%d/%d] ", i + 1, FileCount);
-	Print(hStdOut, msg);
+	Print(hStdOut, "[%d/%d] ", i + 1, FileCount);
 
-	DWORD ResetWhite = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
+	DWORD FOREGROUND_WHITE = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
 	switch (ExitCode)
 	{
 	case 0: // Compiled and ran successfully
 	    SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN);
 	    Print(hStdOut, "PASS");
-	    SetConsoleTextAttribute(hStdOut, ResetWhite);
+	    SetConsoleTextAttribute(hStdOut, FOREGROUND_WHITE);
 	break;
-	case 1: // Failed to compile
+	default: // Failed to compile or run
 	    SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
 	    Print(hStdOut, "FAIL");
-	    SetConsoleTextAttribute(hStdOut, ResetWhite);
-	break;
-	case 2: // Compiled but did not return expected exit code
-	    SetConsoleTextAttribute(hStdOut, FOREGROUND_RED|FOREGROUND_GREEN);
-	    Print(hStdOut, "FAIL");
-	    SetConsoleTextAttribute(hStdOut, ResetWhite);
-	break;
-	default:
-	    Fail("Unknown exit code returned from BuildAndRun");
+	    SetConsoleTextAttribute(hStdOut, FOREGROUND_WHITE);
 	break;
 	}
 
-	wsprintfA(msg, " %s\n", Path);
-	Print(hStdOut, msg);
+	PrintLine(" %s", Path);
     }
 
+    HeapFree(GetProcessHeap(), 0, Commands);
     return 0;
 }
