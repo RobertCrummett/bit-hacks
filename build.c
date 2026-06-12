@@ -35,10 +35,10 @@ static int BuildAndRun(const char *srcPath)
     }
     lstrcpyA(name, srcPath + prefixSize);
     {
-        char *ptr = name;
-        while (*ptr != '\0') ptr++;
-        while (*ptr != '.')  ptr--;
-        *ptr = '\0'; // Shallow copy modification of name
+	char *ptr = name;
+	while (*ptr != '\0') ptr++;
+	while (*ptr != '.')  ptr--;
+	*ptr = '\0'; // Shallow copy modification of name
     }
 
     char objPath[MAX_PATH], exePath[MAX_PATH], pdbPath[MAX_PATH];
@@ -60,14 +60,16 @@ static int BuildAndRun(const char *srcPath)
     // Build the source files.
     char buildCmd[1024];
     wsprintfA(buildCmd,
-            "cl.exe /nologo /Zi /Fo:%s /Fe:%s /Fd:%s %s > NUL",
-            objPath, exePath, pdbPath, srcPath);
-    if (RunCommand(buildCmd) != 0) return 1; // Exit code 1 indicates build failed
+	    "cl.exe /nologo /Zi /Fo:%s /Fe:%s /Fd:%s %s > NUL",
+	    objPath, exePath, pdbPath, srcPath);
+    if (RunCommand(buildCmd) != 0)
+	return 1; // Exit code 1 indicates build failed
 
     // Run the executables.
     char runCmd[1024];
     wsprintfA(runCmd, ".\\%s", exePath);
-    if (RunCommand(runCmd) != 0) return 2; // Exit code 2 indicates run failed
+    if (RunCommand(runCmd) != 0)
+	return 2; // Exit code 2 indicates run failed
 
     return 0;
 }
@@ -77,7 +79,7 @@ static int CreateNewDirectoryUnlessItExists(const char *path)
     if (CreateDirectoryA(path, NULL) == 0) return 0;
 
     if (GetLastError() == ERROR_ALREADY_EXISTS)
-        return 0; // If the directory exists, no action needs to be taken.
+	return 0; // If the directory exists, no action needs to be taken.
 
     // In this case, the path specified does not exist.
     char msg[1024];
@@ -96,46 +98,47 @@ int main(int argc, char** argv)
 
     HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hStdOut == INVALID_HANDLE_VALUE) {
-	    Fail("Standard output handle is invalid");
-	    return 1;
+	Fail("Standard output handle is invalid");
+	return 1;
     }
 
     int FileCount = sizeof(SourceFilePaths) / sizeof(*SourceFilePaths);
 
     for (int i = 0; i < FileCount; i++)
     {
-        const char *Path = SourceFilePaths[i];
-        int ExitCode = BuildAndRun(Path);
-        
-        // Logging result to the standard output
-        char msg[1024];
-        wsprintfA(msg, "[%d/%d] ", i + 1, FileCount);
-        Print(hStdOut, msg);
+	const char *Path = SourceFilePaths[i];
+	int ExitCode = BuildAndRun(Path);
+
+	// Logging result to the standard output
+	char msg[1024];
+	wsprintfA(msg, "[%d/%d] ", i + 1, FileCount);
+	Print(hStdOut, msg);
 
 	DWORD ResetWhite = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
-	switch (ExitCode) {
-	    case 0: // Compiled and ran successfully
-		SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN);
-		Print(hStdOut, "PASS");
-		SetConsoleTextAttribute(hStdOut, ResetWhite);
-		break;
-	    case 1: // Failed to compile
-		SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
-		Print(hStdOut, "FAIL");
-		SetConsoleTextAttribute(hStdOut, ResetWhite);
-		break;
-	    case 2: // Compiled but did not return expected exit code
-		SetConsoleTextAttribute(hStdOut, FOREGROUND_RED|FOREGROUND_GREEN);
-		Print(hStdOut, "FAIL");
-		SetConsoleTextAttribute(hStdOut, ResetWhite);
-		break;
-	    default:
-		Fail("Unknown exit code returned from BuildAndRun");
-		break;
+	switch (ExitCode)
+	{
+	case 0: // Compiled and ran successfully
+	    SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN);
+	    Print(hStdOut, "PASS");
+	    SetConsoleTextAttribute(hStdOut, ResetWhite);
+	break;
+	case 1: // Failed to compile
+	    SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
+	    Print(hStdOut, "FAIL");
+	    SetConsoleTextAttribute(hStdOut, ResetWhite);
+	break;
+	case 2: // Compiled but did not return expected exit code
+	    SetConsoleTextAttribute(hStdOut, FOREGROUND_RED|FOREGROUND_GREEN);
+	    Print(hStdOut, "FAIL");
+	    SetConsoleTextAttribute(hStdOut, ResetWhite);
+	break;
+	default:
+	    Fail("Unknown exit code returned from BuildAndRun");
+	break;
 	}
 
-        wsprintfA(msg, " %s\n", Path);
-        Print(hStdOut, msg);
+	wsprintfA(msg, " %s\n", Path);
+	Print(hStdOut, msg);
     }
 
     return 0;

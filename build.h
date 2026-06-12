@@ -10,7 +10,7 @@ void Fail(const char* msg);
 
 int RunCommand(const char* cmd);
 
-void RebuildSelf(const char* sourcePath);
+void RebuildSelf(const char* srcPath);
 #define REBUILD_SELF() RebuildSelf(__FILE__)
 
 #endif // _BUILD_H
@@ -52,15 +52,17 @@ int RunCommand(const char* cmd)
 
     char cmdBuffer[8192];
     int cmdLength = lstrlenA(cmd);
-    if ((cmdLength + sizeof(cmdPrefix) + sizeof(cmdPostfix) - 1) >= sizeof(cmdBuffer)) {
-        Fail("Command line too long for RunCommand buffer");
+    if ((cmdLength + sizeof(cmdPrefix) + sizeof(cmdPostfix) - 1) >= sizeof(cmdBuffer))
+    {
+	Fail("Command line too long for RunCommand buffer");
     }
     lstrcpyA(cmdBuffer, cmdPrefix);
     lstrcpyA(cmdBuffer + sizeof(cmdPrefix) - 1, cmd);
     lstrcpyA(cmdBuffer + sizeof(cmdPrefix) - 1 + cmdLength, cmdPostfix);
 
-    if (!CreateProcessA(NULL, cmdBuffer, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
-        return GetLastError() ? GetLastError() : 1;
+    if (!CreateProcessA(NULL, cmdBuffer, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) 
+    {
+	return GetLastError() ? GetLastError() : 1;
     }
     WaitForSingleObject(pi.hProcess, INFINITE); // Synchronous execution
 
@@ -73,46 +75,45 @@ int RunCommand(const char* cmd)
     return (int)exitCode;
 }
 
-/* Checks if file a is newer than file b */
-static int IsFileNewer(const char* a, const char* b)
+static int IsFileNewer(const char* srcPath, const char* exePath)
 {
-    WIN32_FILE_ATTRIBUTE_DATA fa;
-    WIN32_FILE_ATTRIBUTE_DATA fb;
+    WIN32_FILE_ATTRIBUTE_DATA srcInfo;
+    WIN32_FILE_ATTRIBUTE_DATA exeInfo;
 
-    if (!GetFileAttributesExA(a, GetFileExInfoStandard, &fa))
+    if (!GetFileAttributesExA(srcPath, GetFileExInfoStandard, &srcInfo))
     {
-        return 0; // Source file not available
+	return 0; // The source does not exist. Cannot rebuild.
     }
 
-    if (!GetFileAttributesExA(b, GetFileExInfoStandard, &fb))
+    if (!GetFileAttributesExA(exePath, GetFileExInfoStandard, &exeInfo))
     {
-        return 1; // Executable file not available
+	return 1; // The executable does not exist. Rebuild.
     }
 
-    return CompareFileTime(&fa.ftLastWriteTime, &fb.ftLastWriteTime) > 0;
+    return CompareFileTime(&srcInfo.ftLastWriteTime, &exeInfo.ftLastWriteTime) > 0;
 }
 
-void RebuildSelf(const char* sourcePath)
+void RebuildSelf(const char* srcPath)
 {
     char exePath[MAX_PATH];
     GetModuleFileNameA(NULL, exePath, MAX_PATH);
 
-    if (!IsFileNewer(sourcePath, exePath)) return;
+    if (IsFileNewer(srcPath, exePath) == 0) return;
 
     HANDLE hMutex = CreateMutexA(NULL, FALSE, "Local\\SelfRebuildingBuildExeMutex");
     if (hMutex)
     {
-        WaitForSingleObject(hMutex, INFINITE);
+	WaitForSingleObject(hMutex, INFINITE);
     }
 
-    if (!IsFileNewer(sourcePath, exePath))
+    if (IsFileNewer(srcPath, exePath) == 0)
     {
-        if (hMutex)
-        { 
-            ReleaseMutex(hMutex);
-            CloseHandle(hMutex);
-        }
-        return; 
+	if (hMutex)
+	{ 
+	    ReleaseMutex(hMutex);
+	    CloseHandle(hMutex);
+	}
+	return; 
     }
 
     PrintLine("Rebuilding self...");
@@ -125,26 +126,26 @@ void RebuildSelf(const char* sourcePath)
     DeleteFileA(oldPath);
     if (!MoveFileExA(exePath, oldPath, MOVEFILE_REPLACE_EXISTING))
     {
-        if (hMutex)
-        {
-            ReleaseMutex(hMutex);
-            CloseHandle(hMutex);
-        }
-        Fail("Could not rename current executable");
+	if (hMutex)
+	{
+	    ReleaseMutex(hMutex);
+	    CloseHandle(hMutex);
+	}
+	Fail("Could not rename current executable");
     }
 
     // Rebuild the executable.
     char cmd[1024];
-    wsprintfA(cmd, "cl.exe /nologo %s /Fe:%s /link user32.lib > NUL", sourcePath, exePath);
+    wsprintfA(cmd, "cl.exe /nologo %s /Fe:%s /link user32.lib > NUL", srcPath, exePath);
     if (RunCommand(cmd) != 0)
     {
-        MoveFileExA(oldPath, exePath, MOVEFILE_REPLACE_EXISTING);
-        if (hMutex)
-        {
-            ReleaseMutex(hMutex);
-            CloseHandle(hMutex);
-        }
-        Fail("Source file compilation failed");
+	MoveFileExA(oldPath, exePath, MOVEFILE_REPLACE_EXISTING);
+	if (hMutex)
+	{
+	    ReleaseMutex(hMutex);
+	    CloseHandle(hMutex);
+	}
+	Fail("Source file compilation failed");
     }
 
     PrintLine("Launching fresh executable...");
@@ -155,8 +156,8 @@ void RebuildSelf(const char* sourcePath)
 
     if (hMutex)
     {
-        ReleaseMutex(hMutex);
-        CloseHandle(hMutex);
+	ReleaseMutex(hMutex);
+	CloseHandle(hMutex);
     }
 
     ExitProcess(newRunExitCode);
