@@ -201,8 +201,17 @@ int const m = 1U << (b - 1); // mask can be precomputed if b is fixed
 ```
 #snippet(code, 1)
 
+The code above requires four operations, but when the bitwidth is constant
+rather than variable, it requires only two fast operations, assuming the
+upper bits are already zeros.
 
+A slightly faster but less portable method that doesn't depend on the bits
+in x above position b begin zero is:
 
+```c
+int const m = CHAR_BIT * sizeof(x) - b;
+```
+#snippet(code, 2)
 
 = Reference
 
