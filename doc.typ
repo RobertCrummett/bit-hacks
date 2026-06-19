@@ -235,6 +235,21 @@ an arithmetic right-shift, maintaining the sign, it should be fast.
 
 #snippet(code, 2)
 
+= Conditionally set or clear bits without branching
+#let code = read("src/set_or_clear_bits.c")
+
+```c
+bool f;         // conditional flag
+unsigned int m; // the bit mask
+unsigned int w; // the word to modify;  if (f) w |= m; else w &= ~m;
+```
+#snippet(code, 1)
+
+#snippet(code, 2)
+
+On some architectures, the lack of branching can more than make up for
+what appears to be twice as many operations.
+
 = Reference
 
 #link("https://graphics.stanford.edu/~seander/bithacks.html")

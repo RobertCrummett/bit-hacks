@@ -16,6 +16,7 @@ const char *SourceFilePaths[] =
     "src/sign_extending_constant_bitwidth.c",
     "src/sign_extending_variable_bitwidth.c",
     "src/sign_extending_variable_bitwidth_three_ops.c",
+    "src/set_or_clear_bits.c",
 };
 
 static ASYNC_COMMAND BuildAndRunAsync(const char *srcPath)
@@ -30,7 +31,7 @@ static ASYNC_COMMAND BuildAndRunAsync(const char *srcPath)
 	    ".\\"BUILD_DIR"\\bin\\%s.exe", name, name, name, srcPath, name);
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     REBUILD_SELF();
 
@@ -42,7 +43,7 @@ int main(int argc, char** argv)
 
     int FileCount = sizeof(SourceFilePaths) / sizeof(*SourceFilePaths);
     ASYNC_COMMAND *Commands = (ASYNC_COMMAND *)HeapAlloc(GetProcessHeap(),
-	    HEAP_ZERO_MEMORY, sizeof(ASYNC_COMMAND) * FileCount);
+	    HEAP_ZERO_MEMORY, sizeof(*Commands) * FileCount);
 
     // Start all tasks asynchronously
     for (int i = 0; i < FileCount; i++)

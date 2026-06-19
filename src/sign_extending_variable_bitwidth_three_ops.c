@@ -53,7 +53,7 @@ int method2(x, b)
 {
     int r;
     // SNIPPET 2
-    const int s = -b; // OR:  sizeof(x) * CHAR_BIT - b;
+    const int s = -b; // OR:  sizeof(int) * CHAR_BIT - b;
     r = (x << s) >> s;
     // END
     return r;
