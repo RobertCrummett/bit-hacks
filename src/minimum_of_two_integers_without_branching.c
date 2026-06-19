@@ -28,17 +28,17 @@ int main(void)
         int x = pair.x, y = pair.y, r;
         int expected = min(x, y);
 
-        // BEGIN: method1
+        // SNIPPET 1
         r = y ^ ((x ^ y) & -(x < y)); // min(x, y)	
-        // END: method1
+        // END
         if (expected != r) return 1;
         
         // The method below is only valid when INT_MIN <= x - y <= INT_MAX
         if (i < 9)
 	{
-            // BEGIN: method2
+            // SNIPPET 2
             r = y + ((x - y) & ((x - y) >> (sizeof(int) * CHAR_BIT - 1))); // min(x, y)
-            // END: method2
+            // END
             if (expected != r) return 2;
         }
     }

@@ -25,9 +25,9 @@ int main(void) {
         int x = pair.x;
         int y = pair.y;
 
-        // BEGIN: method1
+        // SNIPPET 1
         bool f = ((x ^ y) < 0); // true iff x and y have opposite signs
-        // END: method1
+        // END
         bool expected = opposite_signs(x, y);
         if (f != expected) return 1;
     }

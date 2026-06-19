@@ -3,6 +3,27 @@
 #define CHAR_BIT 8
 #define ARRAYSIZE(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
+// SNIPPET tables
+#define M(B) (1U << ((sizeof(int) * CHAR_BIT) - B)) // CHAR_BIT=bits/byte
+static int const multipliers[] =
+{
+    0,     M(1),  M(2),  M(3),  M(4),  M(5),  M(6),  M(7),
+    M(8),  M(9),  M(10), M(11), M(12), M(13), M(14), M(15),
+    M(16), M(17), M(18), M(19), M(20), M(21), M(22), M(23),
+    M(24), M(25), M(26), M(27), M(28), M(29), M(30), M(31),
+    M(32)
+}; // (add more if using more than 64 bits)
+static int const divisors[] =
+{
+    1,    ~M(1),  M(2),  M(3),  M(4),  M(5),  M(6),  M(7),
+    M(8),  M(9),  M(10), M(11), M(12), M(13), M(14), M(15),
+    M(16), M(17), M(18), M(19), M(20), M(21), M(22), M(23),
+    M(24), M(25), M(26), M(27), M(28), M(29), M(30), M(31),
+    M(32)
+}; // (add more for 64 bits)
+#undef M
+// END
+
 int reference_sign_extend(int x, unsigned int b)
 {
     switch (b)
@@ -18,23 +39,22 @@ int reference_sign_extend(int x, unsigned int b)
     return 0;
 }
 
-int method1(int x, unsigned int b)
+int method1(x, b)
 {
     int r;
-    int const m = 1U << (b - 1);
     // SNIPPET 1
-    x = x & ((1U << b) - 1);  // skip this if bits in x above position b are already zero
-    r = (x ^ m) - m;
+    r = (x * multipliers[b]) / divisors[b];
     // END
     return r;
 }
 
-int method2(int x, unsigned int b)
+// Non portable (relies upon arithmetic right shift keeping sign)
+int method2(x, b)
 {
     int r;
-    int const m = CHAR_BIT * sizeof(x) - b;
     // SNIPPET 2
-    r = (x << m) >> m;
+    const int s = -b; // OR:  sizeof(x) * CHAR_BIT - b;
+    r = (x << s) >> s;
     // END
     return r;
 }
@@ -64,6 +84,5 @@ int main(void)
 	    if (method2(x, b) != expected) return 2;
 	}
     }
-     
     return 0;
 }

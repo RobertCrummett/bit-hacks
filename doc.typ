@@ -3,8 +3,7 @@
 #let snippet(code, method) = {
   let m = str(method)
   let pattern = regex(
-    "(?s)//\\s*BEGIN:\\s*method" + m + 
-    "\\s*(.*?)\\s*//\\s*END:\\s*method" + m
+    "(?s)//\\s*SNIPPET\\s*" + m + "\\s*(.*?)\\s*//\\s*END"
   )
   let match = code.match(pattern)
   if match != none {
@@ -14,12 +13,12 @@
       .map(line => line.trim())
       .join("\n"), lang: "c")
   } else {
-    return raw("// SNIPPET - Method `" + m + "` not matched", lang: "c")
+    return raw("// SNIPPET " + m + " not found", lang: "c")
   }
 }
 
 = Compute the sign of an integer
-#let code = read("sign_of_an_integer.c")
+#let code = read("src/sign_of_an_integer.c")
 
 ```c
 int v;      // we want to find the sign of v
@@ -55,7 +54,7 @@ the result of the signed right-shift implementation-defined, so on some systems 
 hack might not work. Angus recommended the casting versions on March 4, 2006.
 
 = Detect if two intergers have opposite signs
-#let code = read("two_integers_have_opposite_signs.c")
+#let code = read("src/two_integers_have_opposite_signs.c")
 
 ```c
 int x, y;               // input values to compare signs
@@ -63,7 +62,7 @@ int x, y;               // input values to compare signs
 #snippet(code, 1)
 
 = Compute the integer absolute value (abs) without branching
-#let code = read("integer_absolute_value_without_branching.c")
+#let code = read("src/integer_absolute_value_without_branching.c")
 
 ```
 int v;           // we want to find the absolute value of v
@@ -90,7 +89,7 @@ unsigned by adding $2^N$, yielding a two's compliment representation of `v`'s va
 This value is subsequently negated, giving the desired result.
 
 = Compute the minimum or maximum of two integers without branching
-#let code = read("minimum_of_two_integers_without_branching.c")
+#let code = read("src/minimum_of_two_integers_without_branching.c")
 
 ```c
 int x;  // we want to find the minimum of x and y
@@ -134,7 +133,7 @@ shift needs a signed operand to produce all one bits when negative, so cast
 to signed integer there.
 
 = Determining if an integer is a power of two
-#let code = read("integer_power_of_two.c")
+#let code = read("src/integer_power_of_two.c")
 
 ```c
 unsigned int v;  // we want to see if v is a power of two
@@ -147,7 +146,7 @@ Note 0 is incorrectly considered a power of two here. To remedy this, use:
 #snippet(code, 2)
 
 = Sign extending from a constant bit-width
-#let code = read("sign_extending_constant_bitwidth.c")
+#let code = read("src/sign_extending_constant_bitwidth.c")
 
 Sign extension is automatic for built-in types, such as chars and ints.
 But suppose you have a signed two's complement number, x, that is stored
@@ -187,7 +186,7 @@ the bitfield have the keyword `signed` to be signed; otherwise, the sign
 is undefined.
 
 = Sign extending from a variable bit-width
-#let code = read("sign_extending_variable_bitwidth.c")
+#let code = read("src/sign_extending_variable_bitwidth.c")
 
 Sometimes we need to extend the sign of a number but we don't know a priori
 the number of bits, b, in which it is represented. (Or we could be programming
@@ -211,6 +210,29 @@ in x above position b begin zero is:
 ```c
 int const m = CHAR_BIT * sizeof(x) - b;
 ```
+#snippet(code, 2)
+
+= Sign extending from a variable bit-width in three operations
+#let code = read("src/sign_extending_variable_bitwidth_three_ops.c")
+
+The following may be slow on some machines, due to the effore required for
+multiplication and division. This verion is four operations. If you know
+that your initial bit-width, b, is greater than 1, you might do this sign
+extension in three operations by using `r = (x * multipliers[b]) / multipliers[b]`,
+which requires only one array lookup.
+
+```c
+unsigned b; // number of bits representing the number in x
+int x;      // sign extend this b-bit number to r
+int r;      // resulting sign-extended number
+```
+#snippet(code, "tables")
+
+#snippet(code, 1)
+
+The following variation is not portable, but on architectures that employ
+an arithmetic right-shift, maintaining the sign, it should be fast.
+
 #snippet(code, 2)
 
 = Reference

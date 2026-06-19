@@ -13,22 +13,22 @@ int main(void) {
     for (int i = 0; i < num_cases; i++) {
         int sign, v = test_cases[i], expected = get_expected_sign(v);
 
-        // BEGIN: method1
+        // SNIPPET 1
         // CHAR_BIT is the number of bits per byte (normally 8).
         sign = -(v < 0);
-        // END: method1
+        // END
         if (sign != expected) return 1;
 
-        // BEGIN: method2
+        // SNIPPET 2
         // or, to avoid branching on CPUs with flag registers (IA32).
         sign = -(int)((unsigned int)((int)v) >> (sizeof(int) * CHAR_BIT - 1));
-        // END: method2
+        // END
         if (sign != expected) return 2;
 
-        // BEGIN: method3
+        // SNIPPET 3
         // or, for one less instruction (but not portable):
         sign = v >> (sizeof(int) * CHAR_BIT - 1);
-        // END: method3
+        // END
         if (sign != expected) return 3;
     }
 

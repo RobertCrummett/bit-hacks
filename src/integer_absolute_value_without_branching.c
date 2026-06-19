@@ -16,14 +16,14 @@ int main(void) {
         int const mask = v >> sizeof(int) * CHAR_BIT - 1;
         unsigned int r, expected = abs(v);
 
-        // BEGIN: method1
+        // SNIPPET 1
         r = (v + mask) ^ mask;
-        // END: method1
+        // END
         if (r != expected) return 1;
 
-        // BEGIN: method2
+        // SNIPPET 2
         r = (v ^ mask) - mask;
-        // END: method2
+        // END
         if (r != expected) return 2;
     }
 

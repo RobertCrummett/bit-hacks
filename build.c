@@ -15,6 +15,7 @@ const char *SourceFilePaths[] =
     "src/integer_power_of_two.c",
     "src/sign_extending_constant_bitwidth.c",
     "src/sign_extending_variable_bitwidth.c",
+    "src/sign_extending_variable_bitwidth_three_ops.c",
 };
 
 static ASYNC_COMMAND BuildAndRunAsync(const char *srcPath)

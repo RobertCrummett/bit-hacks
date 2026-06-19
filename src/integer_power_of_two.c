@@ -16,9 +16,9 @@ int main(void) {
         unsigned v = test_cases[i];
         bool f, expected = uint_power_of_two(v);
 
-        // BEGIN: method1
+        // SNIPPET 1
         f = (v & (v - 1)) == 0;
-        // END: method1
+        // END
 	if (v == 0) {
 	    // Expected failure of method1 for v == 0, f should be false, but it is true
 	    if (f != true) return -1;
@@ -26,9 +26,9 @@ int main(void) {
 	    if (f != expected) return 1;
 	}
 
-        // BEGIN: method2
+        // SNIPPET 2
         f = v && !(v & (v - 1));
-        // END: method2
+        // END
         if (f != expected) return 2;
     }
 

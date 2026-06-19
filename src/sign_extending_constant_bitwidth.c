@@ -7,9 +7,9 @@ int sign_extend_s5(int x)
 {
     int r;
     struct { signed int x:5; } s;
-    // BEGIN: method1
+    // SNIPPET 1
     r = s.x = x;
-    // END: method1
+    // END
     return r;
 }
 
