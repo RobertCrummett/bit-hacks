@@ -9,23 +9,23 @@
 #define BUILD_DIR ".build"
 #endif
 
-void Print(HANDLE hOut, const char* fmt, ...);
-void PrintLine(const char* fmt, ...);
-void Fail(const char* fmt, ...);
+void Print(HANDLE hOut, const char *fmt, ...);
+void PrintLine(const char *fmt, ...);
+void Fail(const char *fmt, ...);
 
 typedef struct {
     HANDLE hProcess;
     char tempFile[MAX_PATH];
 } ASYNC_COMMAND;
 
-int RunCommand(const char* fmt, ...);
-ASYNC_COMMAND AsyncRunCommand(const char* fmt, ...);
+int RunCommand(const char *fmt, ...);
+ASYNC_COMMAND AsyncRunCommand(const char *fmt, ...);
 int WaitAndReportCommand(ASYNC_COMMAND cmd);
 
-const char* PathFindFileName(const char* path);
-void PathRemoveExtension(char* path);
+const char *PathFindFileName(const char *path);
+void PathRemoveExtension(char *path);
 
-void RebuildSelf(const char* srcPath);
+void RebuildSelf(const char *srcPath);
 #define REBUILD_SELF() RebuildSelf(__FILE__)
 
 #endif // _BUILD_H
@@ -34,10 +34,9 @@ void RebuildSelf(const char* srcPath);
 
 static char g_InternalBuffer[8192];
 
-const char* PathFindFileName(const char* path)
+const char *PathFindFileName(const char *path)
 {
-    const char* fileName = path;
-    const char* p = path;
+    const char *fileName = path, *p = path;
     while (*p)
     {
         if (*p == '\\' || *p == '/') fileName = p + 1;
@@ -46,10 +45,9 @@ const char* PathFindFileName(const char* path)
     return fileName;
 }
 
-void PathRemoveExtension(char* path)
+void PathRemoveExtension(char *path)
 {
-    char* lastDot = NULL;
-    char* p = path;
+    char *lastDot = NULL, *p = path;
     while (*p)
     {
         if (*p == '.') lastDot = p;
@@ -59,7 +57,7 @@ void PathRemoveExtension(char* path)
     if (lastDot) *lastDot = '\0';
 }
 
-void Print(HANDLE hOut, const char* fmt, ...)
+void Print(HANDLE hOut, const char *fmt, ...)
 {
     if (!fmt) return;
     va_list args;
@@ -71,7 +69,7 @@ void Print(HANDLE hOut, const char* fmt, ...)
     WriteFile(hOut, g_InternalBuffer, (DWORD)lstrlenA(g_InternalBuffer), &written, NULL);
 }
 
-void PrintLine(const char* fmt, ...)
+void PrintLine(const char *fmt, ...)
 {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (fmt)
@@ -85,7 +83,7 @@ void PrintLine(const char* fmt, ...)
     Print(hOut, "\r\n");
 }
 
-void Fail(const char* fmt, ...)
+void Fail(const char *fmt, ...)
 {
     HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
     Print(hErr, "FATAL ERROR: ");
@@ -101,7 +99,7 @@ void Fail(const char* fmt, ...)
     ExitProcess(1);
 }
 
-static ASYNC_COMMAND Internal_VAsyncRunCommand(const char* fmt, va_list args)
+static ASYNC_COMMAND Internal_VAsyncRunCommand(const char *fmt, va_list args)
 {
     ASYNC_COMMAND cmd = {0};
 
@@ -145,7 +143,7 @@ static ASYNC_COMMAND Internal_VAsyncRunCommand(const char* fmt, va_list args)
     return cmd;
 }
 
-ASYNC_COMMAND AsyncRunCommand(const char* fmt, ...)
+ASYNC_COMMAND AsyncRunCommand(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -184,7 +182,7 @@ int WaitAndReportCommand(ASYNC_COMMAND cmd)
     return (int)exitCode;
 }
 
-int RunCommand(const char* fmt, ...)
+int RunCommand(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -194,7 +192,7 @@ int RunCommand(const char* fmt, ...)
     return WaitAndReportCommand(cmd);
 }
 
-static int IsFileNewer(const char* srcPath, const char* exePath)
+static int IsFileNewer(const char *srcPath, const char *exePath)
 {
     WIN32_FILE_ATTRIBUTE_DATA srcInfo;
     WIN32_FILE_ATTRIBUTE_DATA exeInfo;
@@ -230,7 +228,7 @@ static void EnsureBuildDirectoriesExist(void)
     CreateNewDirectoryUnlessItExists(BUILD_DIR "\\obj");
 }
 
-void RebuildSelf(const char* srcPath)
+void RebuildSelf(const char *srcPath)
 {
     EnsureBuildDirectoriesExist();
 
@@ -240,18 +238,11 @@ void RebuildSelf(const char* srcPath)
     if (IsFileNewer(srcPath, exePath) == 0) return;
 
     HANDLE hMutex = CreateMutexA(NULL, FALSE, "Local\\SelfRebuildingBuildExeMutex");
-    if (hMutex)
-    {
-	WaitForSingleObject(hMutex, INFINITE);
-    }
+    if (hMutex) WaitForSingleObject(hMutex, INFINITE);
 
     if (IsFileNewer(srcPath, exePath) == 0)
     {
-	if (hMutex)
-	{ 
-	    ReleaseMutex(hMutex);
-	    CloseHandle(hMutex);
-	}
+	if (hMutex) { ReleaseMutex(hMutex); CloseHandle(hMutex); }
 	return; 
     }
 
@@ -266,11 +257,7 @@ void RebuildSelf(const char* srcPath)
     DeleteFileA(oldPath);
     if (!MoveFileExA(exePath, oldPath, MOVEFILE_REPLACE_EXISTING))
     {
-	if (hMutex)
-	{
-	    ReleaseMutex(hMutex);
-	    CloseHandle(hMutex);
-	}
+	if (hMutex) { ReleaseMutex(hMutex); CloseHandle(hMutex); }
 	Fail("Could not rename current executable");
     }
 
@@ -279,15 +266,10 @@ void RebuildSelf(const char* srcPath)
     wsprintfA(objPath, BUILD_DIR "\\obj\\build.obj");
     wsprintfA(pdbPath, BUILD_DIR "\\bin\\build.pdb");
 
-    if (RunCommand("cl.exe /nologo /Zi /Fo:%s /Fd:%s /Fe:%s %s /link user32.lib", 
-                   objPath, pdbPath, exePath, srcPath) != 0)
+    if (RunCommand("cl.exe /nologo /Zi /Fo:%s /Fd:%s /Fe:%s %s /link user32.lib", objPath, pdbPath, exePath, srcPath) != 0)
     {
 	MoveFileExA(oldPath, exePath, MOVEFILE_REPLACE_EXISTING);
-	if (hMutex)
-	{
-	    ReleaseMutex(hMutex);
-	    CloseHandle(hMutex);
-	}
+	if (hMutex) { ReleaseMutex(hMutex); CloseHandle(hMutex); }
 	Fail("Source file compilation failed");
     }
 
@@ -297,21 +279,21 @@ void RebuildSelf(const char* srcPath)
     // We do NOT use RunCommand here because we don't want to redirect output to a temp file.
     // We want the fresh executable to print directly to the console.
     // We also do not wait for the process to finish, we just exit.
-    char* original_cmd = GetCommandLineA();
-    STARTUPINFOA si = { sizeof(si) };
-    PROCESS_INFORMATION pi = { 0 };
-    if (!CreateProcessA(NULL, original_cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi))
+    STARTUPINFOA si = {sizeof(si)};
+    PROCESS_INFORMATION pi = {0};
+    if (!CreateProcessA(NULL, GetCommandLineA(), NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi))
     {
         Fail("Could not launch fresh executable");
     }
+    WaitForSingleObject(pi.hProcess, INFINITE);
 
-    if (hMutex)
-    {
-	ReleaseMutex(hMutex);
-	CloseHandle(hMutex);
-    }
+    DWORD exitCode = 1;
+    GetExitCodeProcess(pi.hProcess, &exitCode);
+    CloseHandle(pi.hProcess);
 
-    ExitProcess(0);
+    if (hMutex) { ReleaseMutex(hMutex); CloseHandle(hMutex); }
+
+    ExitProcess(exitCode);
 }
 
 #endif // BUILD_IMPLEMENTATION

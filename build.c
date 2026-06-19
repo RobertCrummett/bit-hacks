@@ -24,8 +24,9 @@ static ASYNC_COMMAND BuildAndRunAsync(const char *srcPath)
     PathRemoveExtension(name);
 
     // Build and run the source files asynchronously.
-    return AsyncRunCommand("cl.exe /nologo /Zi /Fo:"BUILD_DIR"\\obj\\%s.obj /Fe:"BUILD_DIR"\\bin\\%s.exe "
-	                   "/Fd:"BUILD_DIR"\\bin\\%s.pdb %s && .\\"BUILD_DIR"\\bin\\%s.exe", name, name, name, srcPath, name);
+    return AsyncRunCommand("cl.exe /nologo /Zi /Fo:"BUILD_DIR"\\obj\\%s.obj "
+	    "/Fe:"BUILD_DIR"\\bin\\%s.exe /Fd:"BUILD_DIR"\\bin\\%s.pdb %s && "
+	    ".\\"BUILD_DIR"\\bin\\%s.exe", name, name, name, srcPath, name);
 }
 
 int main(int argc, char** argv)
@@ -39,7 +40,8 @@ int main(int argc, char** argv)
     }
 
     int FileCount = sizeof(SourceFilePaths) / sizeof(*SourceFilePaths);
-    ASYNC_COMMAND *Commands = (ASYNC_COMMAND *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ASYNC_COMMAND) * FileCount);
+    ASYNC_COMMAND *Commands = (ASYNC_COMMAND *)HeapAlloc(GetProcessHeap(),
+	    HEAP_ZERO_MEMORY, sizeof(ASYNC_COMMAND) * FileCount);
 
     // Start all tasks asynchronously
     for (int i = 0; i < FileCount; i++)
